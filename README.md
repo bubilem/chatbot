@@ -1,4 +1,4 @@
-# 🤖 AI Chatbot – Modulární chatbot s vektorovým vyhledáváním
+# AI Chatbot – Modulární chatbot s vektorovým vyhledáváním
 
 Tento projekt je plně modulární, asynchronní klient-server aplikace poskytující moderní, vložitelný (**embeddable**) chatbot widget s backendem připraveným pro napojení umělé inteligence (LLM) a vektorové databáze (ChromaDB).
 
@@ -12,35 +12,38 @@ chatbot/
 │   ├── client/           ← Embeddable JavaScript widget
 │   └── server/           ← PHP proxy (CORS, rate limiting, cURL na Python API)
 │
-├── chat-api/             ← Python backend (FastAPI) – mozek chatbota
-│   └── main.py           ← REST API: POST /chat
+├── chat-api/             ← Python backend (FastAPI) – RAG pipeline
+│   ├── main.py           ← REST API: GET / a POST /chat
+│   ├── retriever.py      ← Singleton ChromaDB + sémantické vyhledávání
+│   ├── llm.py            ← Singleton Ollama klient + sestavení promptu
+│   └── chroma_db/        ← Vektorová databáze (plní data-vectorizer)
 │
 └── data-vectorizer/      ← ETL pipeline pro plnění vektorové databáze
     ├── extract.py        ← Extrakce dat z MySQL
     ├── transform.py      ← Čištění HTML + chunking textu
-    ├── load.py           ← Vektorizace + uložení do ChromaDB
+    ├── load.py           ← Vektorizace + uložení do chat-api/chroma_db
     └── main.py           ← Spouštěč celého ETL procesu
 ```
 
 ### Tok dat (jak systém funguje)
 
 ```
-Uživatel (prohlížeč)
-     │  klikne na widget
-     ▼
-widget.js  ──(fetch POST)──►  server/api.php
-                                    │
-                          PHP validuje & rate-limit
-                                    │
-                              ──(cURL POST)──►  chat-api (FastAPI :8000)
-                                                      │
-                                            Python hledá v ChromaDB
-                                            a volá LLM (plánováno)
-                                                      │
-                                              ◄── JSON response
-                                    │
-                          PHP přeposílá odpověď
-                                    │
+Uživatel → widget.js → api.php → chat-api (FastAPI)
+                                       │
+                              1. Vektorizace dotazu
+                              (multilingual-e5-small)
+                                       │
+                              2. Similarity search v ChromaDB
+                              (top-3 nejrelevantnější chunky)
+                                       │
+                              3. Sestavení promptu:
+                              "Kontext: {chunky}\nOtázka: {zpráva}"
+                                       │
+                              4. Ollama LLM vygeneruje odpověď
+                              (llama3.2 nebo jiný lokální model)
+                                       │
+                                   Odpověď ← ← ← ← ← ←
+                                       │
      ◄──────────────────────  widget.js zobrazí zprávu
 ```
 
@@ -122,10 +125,12 @@ Otevřete v prohlížeči: **`http://localhost:8080/client/index.html`**
 |---|---|---|
 | Frontend widget | Vanilla JS + CSS | Embeddable chat UI |
 | PHP proxy | PHP 8+ | CORS, Rate Limiting, bezpečná proxy |
-| Python API | FastAPI + uvicorn | REST backend, budoucí AI logika |
+| Python API | FastAPI + uvicorn | REST backend, RAG pipeline |
+| RAG Retrieve | ChromaDB + sentence-transformers | Sémantické vyhledávání v obsahu |
+| RAG Generate | Ollama + Llama 3.2 | Lokální LLM generování odpovědí |
 | ETL pipeline | Python + LangChain | Příprava dat pro AI |
-| Vektorová DB | ChromaDB | Sémantické vyhledávání |
-| AI model | multilingual-e5-small | Tvorba embeddings (čeština) |
+| Vektorová DB | ChromaDB | Ukládání a vyhledávání vektorů |
+| Embedding model | BAAI/bge-m3 | Tvorba vektorů (vícejazyčné) |
 | Zdrojová DB | MySQL | Obsah CMS webu |
 
 ---
@@ -149,7 +154,8 @@ Otevřete v prohlížeči: **`http://localhost:8080/client/index.html`**
 - [x] FastAPI skeleton s CORS a health-check endpointem
 - [x] ETL pipeline (MySQL → ChromaDB)
 - [x] Vektorové vyhledávání (test_query.py)
-- [ ] Integrace ChromaDB s chat-api (sémantické vyhledávání)
-- [ ] Napojení LLM modelu (LangChain + OpenAI / Ollama / Gemini)
+- [x] Integrace ChromaDB s chat-api (RAG retriever)
+- [x] Integrace Ollama LLM s chat-api (generování odpovědí)
 - [ ] Autentizace API klíčem
 - [ ] Docker Compose pro jednoduchý deploy
+- [ ] Ladění kvality odpovědí (prompt engineering, top-K, chunk size)

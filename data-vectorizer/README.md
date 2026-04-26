@@ -207,7 +207,7 @@ Typ obsahu: article
 Zdrojová URL: /o-nas/otviraci-doba
 ID modulu: article_42
 --------------------------------------------------
-Muzeum je otevřeno od pondělí do pátku 9:00–17:00...
+Škola je otevřena od pondělí do pátku 7:00–17:00...
 ```
 
 > **Skóre vzdálenosti:** Nižší číslo = vyšší podobnost. Hodnoty pod 0.5 jsou zpravidla velmi relevantní.

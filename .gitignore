@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!**/.env.example
 
 # Python
 __pycache__/
@@ -46,6 +47,8 @@ venv.bak/
 Thumbs.db
 
 # Databáze
-chroma_db/
+# chroma_db je umístěna v chat-api/ (sdílená oběma komponentami)
+chat-api/chroma_db/
+# Stará umístění (pro případ mígrace nebo lokálního testování)
 data-vectorizer/chroma_db/
-data-vectorizer/venv/
+chroma_db/

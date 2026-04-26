@@ -1,8 +1,30 @@
 # Python Bot API (`chat-api`)
 
-Tato složka obsahuje backendovou mikroslužbu naprogramovanou v Pythonu s využitím frameworku **FastAPI**. Slouží jako centrální mozek chatbota – přijímá zprávy od PHP proxy, zpracuje je a vrátí odpověď.
+Tato složka obsahuje backendovou mikroslužbu naprogramovanou v Pythonu s využitím frameworku **FastAPI**. Implementuje architekturu **RAG (Retrieval-Augmented Generation)** – na každý uživatelský dotaz nejprve vyhledá relevantní obsah v ChromaDB a poté předá kontext lokálnímu LLM modelu (Ollama), který vygeneruje smysluplnou odpověď.
 
-**Aktuální stav:** Echo server (vrací zprávy zpět s prefixem `"Bot říká:"`). Kód je strukturálně připraven na integraci umělé inteligence.
+---
+
+## Architektura RAG pipeline
+
+```
+POST /chat  {"message": "Jaká je otevírací doba?"}
+     │
+     ▼
+retriever.py → similarity_search v ChromaDB
+     │          (embedding model: multilingual-e5-small)
+     │          Vrátí top-3 nejrelevantnější textové bloky
+     │
+     ▼
+llm.py → ChatOllama (llama3.2 nebo jiný model)
+     │   Prompt: SystemPrompt + Kontext z DB + Otázka uživatele
+     │
+     ▼
+{"response": "Škola je otevřena pondělí–pátek 7–17 hod..."}
+```
+
+> [!IMPORTANT]
+> Embedding model v `chat-api` musí být **identický** s modelem použitým při vektorizaci v `data-vectorizer`. Záměna způsobí nekompatibilní vektory a nesmyslné výsledky vyhledávání.
+> Správný model: `intfloat/multilingual-e5-small` (nastaven jako výchozí v `.env.example`).
 
 ---
 
@@ -10,176 +32,200 @@ Tato složka obsahuje backendovou mikroslužbu naprogramovanou v Pythonu s využ
 
 ```
 chat-api/
-├── main.py           ← Definice FastAPI aplikace, endpointy, CORS, validace
-├── requirements.txt  ← Seznam Python závislostí s fixovanými verzemi
-└── venv/             ← Virtuální prostředí (není v Gitu)
+├── main.py           ← FastAPI aplikace, lifespan, endpointy /  a /chat
+├── retriever.py      ← Singleton ChromaDB, sémantické vyhledávání
+├── llm.py            ← Singleton Ollama klient, sestavení promptu, generování odpovědi
+├── requirements.txt  ← Python závislosti s fixovanými verzemi
+├── .env.example      ← Šablona konfigurace (zkopírujte na .env a vyplňte)
+├── .env              ← Vaše konfigurace (NENÍ v Gitu!)
+└── chroma_db/        ← Vektorová databáze (plní data-vectorizer, NENÍ v Gitu)
 ```
+
+---
+
+## Předpoklady – Ollama
+
+Ollama je lokální LLM runtime, který umožňuje spouštět jazykové modely na vašem počítači bez cloudu.
+
+### 1. Instalace Ollama
+
+Stáhněte a nainstalujte z: **[ollama.com](https://ollama.com)**
+
+### 2. Stažení modelu
+
+```bash
+# Doporučeno: llama3.2 (~2 GB)
+ollama pull llama3.2
+
+# Alternativy pro lepší češtinu:
+ollama pull mistral      # ~4 GB
+ollama pull gemma2:9b    # ~5.5 GB
+```
+
+### 3. Spuštění Ollama serveru
+
+```bash
+ollama serve
+```
+
+> Ollama poběží na `http://localhost:11434`. Musí běžet souběžně s `chat-api`.
 
 ---
 
 ## Instalace a spuštění
 
-### Předpoklady
-
-- Python **3.11** nebo **3.12** (doporučeno)
-- pip (součást Pythonu)
-
-### Krok 1 – Vytvoření virtuálního prostředí
-
-Virtuální prostředí izoluje závislosti tohoto projektu od ostatních Python projektů na vašem počítači. Je silně doporučeno.
+### Krok 1 – Virtuální prostředí
 
 ```powershell
 # Windows (PowerShell) – z kořene repozitáře
 cd chat-api
 python -m venv venv
+.\venv\Scripts\activate
 ```
 
 ```bash
 # Linux / macOS
 cd chat-api
 python3 -m venv venv
-```
-
-### Krok 2 – Aktivace virtuálního prostředí
-
-```powershell
-# Windows (PowerShell)
-.\venv\Scripts\activate
-```
-
-```bash
-# Linux / macOS
 source venv/bin/activate
 ```
 
-> Po aktivaci se v terminálu vlevo zobrazí `(venv)`. Veškeré příkazy `pip` a `python` nyní pracují v izolovaném prostředí.
-
-### Krok 3 – Instalace závislostí
+### Krok 2 – Instalace závislostí
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Závislosti projektu:**
+> [!NOTE]
+> Instalace `sentence-transformers` a `chromadb` může trvat několik minut a vyžaduje ~1 GB místa na disku. Při prvním spuštění API se navíc stáhne embedding model (~100–300 MB).
+
+**Přehled závislostí:**
 
 | Balíček | Verze | Účel |
 |---|---|---|
-| `fastapi` | 0.115.5 | Web framework pro REST API |
-| `uvicorn[standard]` | 0.32.1 | ASGI server pro spuštění FastAPI |
-| `pydantic` | 2.10.3 | Validace dat vstupů/výstupů |
+| `fastapi` | 0.115.5 | Web framework |
+| `uvicorn[standard]` | 0.32.1 | ASGI server |
+| `pydantic` | 2.10.3 | Validace dat |
+| `langchain` | 0.3.7 | Orchestrace AI |
+| `langchain-chroma` | 0.1.4 | LangChain → ChromaDB wrapper |
+| `langchain-huggingface` | 0.1.2 | LangChain → HuggingFace embeddings |
+| `langchain-ollama` | 0.2.3 | LangChain → Ollama LLM |
+| `chromadb` | 0.5.15 | Vektorová databáze |
+| `sentence-transformers` | 3.3.1 | Inference embedding modelu |
+| `python-dotenv` | 1.0.1 | Načítání `.env` |
 
-### Krok 4 – Spuštění vývojového serveru
+### Krok 3 – Konfigurace
 
 ```bash
+cp .env.example .env
+```
+
+Výchozí hodnoty jsou funkční pro lokální vývoj. Upravte dle potřeby:
+
+```ini
+CHROMA_DB_DIR=./chroma_db        # Kde jsou uložena vektorizovaná data
+OLLAMA_MODEL=llama3.2            # Název staženého Ollama modelu
+RETRIEVAL_TOP_K=3                # Počet chunků předaných LLM jako kontext
+```
+
+### Krok 4 – Naplnění ChromaDB
+
+Před spuštěním chat-api musíte mít naplněnou vektorovou databázi. Spusťte ETL pipeline z `data-vectorizer/`:
+
+```bash
+cd ../data-vectorizer
+# Ujistěte se, že .env má CHROMA_DB_DIR=../chat-api/chroma_db
+.\venv\Scripts\activate
+python main.py
+```
+
+### Krok 5 – Spuštění API
+
+```bash
+cd ../chat-api
+.\venv\Scripts\activate
 uvicorn main:app --reload
 ```
 
-> API poběží na **`http://127.0.0.1:8000`**
-> Flag `--reload` způsobí automatický restart serveru po každé změně kódu (vhodné pro vývoj).
+Výstup při úspěšném startu:
+```
+10:00:00 [INFO] __main__: ═══════════════════════════════════
+10:00:00 [INFO] __main__: Spouštím Chatbot API...
+10:00:00 [INFO] retriever: Inicializuji embedding model: intfloat/multilingual-e5-small
+10:00:18 [INFO] retriever: ChromaDB připravena. Počet záznamů v kolekci: 214
+10:00:18 [INFO] __main__: API připraveno na http://127.0.0.1:8000
+```
 
 ---
 
 ## API Dokumentace
 
-FastAPI automaticky generuje interaktivní dokumentaci. Zatímco server běží, otevřete v prohlížeči:
+| URL | Popis |
+|---|---|
+| `http://127.0.0.1:8000/docs` | Swagger UI – interaktivní testování |
+| `http://127.0.0.1:8000/redoc` | ReDoc – přehledná dokumentace |
 
-- **Swagger UI:** `http://127.0.0.1:8000/docs`
-- **ReDoc:** `http://127.0.0.1:8000/redoc`
+### `GET /` – Health Check
 
-### Endpointy
-
-#### `GET /` – Health Check
-
-Ověří, že API je dostupné. Vhodné pro monitoring a load-balancery.
-
-**Odpověď:**
 ```json
 {
   "status": "ok",
-  "service": "chatbot-api"
+  "service": "chatbot-api",
+  "version": "0.2.0",
+  "llm_model": "llama3.2",
+  "retrieval_top_k": 3
 }
 ```
 
-#### `POST /chat` – Zpracování zprávy
+### `POST /chat` – Zpracování dotazu
 
-Zpracuje uživatelskou zprávu a vrátí odpověď chatbota.
-
-**Požadavek (Request Body):**
+**Požadavek:**
 ```json
-{
-  "message": "Ahoj, jak funguje tento chatbot?"
-}
+{ "message": "Jaká je otevírací doba?" }
 ```
 
-**Odpověď (Response):**
+**Odpověď:**
 ```json
-{
-  "response": "Bot říká: Ahoj, jak funguje tento chatbot?"
-}
+{ "response": "Muzeum je otevřeno od pondělí do pátku 9:00–17:00, o víkendech 10:00–16:00. [Zdroj: /o-nas/otviraci-doba]" }
 ```
 
 **Chybové stavy:**
 
 | HTTP kód | Situace |
 |---|---|
-| `422 Unprocessable Entity` | Chybí pole `message`, nebo je zpráva prázdná |
-| `500 Internal Server Error` | Neočekávaná chyba na serveru |
+| `422 Unprocessable Entity` | Chybí `message` nebo je prázdná |
+| `503 Service Unavailable` | Ollama neběží nebo model není stažen |
 
 ---
 
-## Architektura kódu (`main.py`)
+## Popis souborů
 
-```python
-# CORS Middleware – povolí komunikaci z PHP proxy
-app.add_middleware(CORSMiddleware, allow_origins=["*"], ...)
+### `retriever.py`
 
-# Pydantic model – automaticky validuje vstup
-class ChatRequest(BaseModel):
-    message: str
-    # @field_validator zajistí, že zpráva není prázdný string
+- **Singleton** `_vector_store` – ChromaDB + embedding model se inicializují jednou při startu
+- `get_vector_store()` – připojí se k `CHROMA_DB_DIR`, načte embedding model
+- `retrieve_context(query, top_k)` – vektorizuje dotaz, hledá top-K nejpodobnějších chunků, vrátí je jako formátovaný string s URL zdroji
 
-# Endpoint – přijme validovaný request, vrátí response
-@app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest): ...
-```
+### `llm.py`
 
-Celý kód je **asynchronní** (`async def`), čímž umožňuje obsloužit více požadavků najednou bez blokování.
+- **Singleton** `_llm` – ChatOllama klient
+- `SYSTEM_PROMPT` – instrukce pro LLM: odpovídat v češtině, pouze z kontextu, bez halucinací
+- `generate_answer(context, question)` – sestaví zprávy `[SystemMessage, HumanMessage]` a asynchronně zavolá `llm.ainvoke()`
 
----
+### `main.py`
 
-## CORS (Cross-Origin Resource Sharing)
-
-API má nastavený CORS middleware, který umožňuje komunikaci z PHP proxy serveru. Aktuálně je povolený `*` (všechny domény) – vhodné pro vývoj.
-
-> [!WARNING]
-> **V produkci** nahraďte `allow_origins=["*"]` konkrétní doménou vašeho webu:
-> ```python
-> allow_origins=["https://vase-domena.cz"]
-> ```
+- **Lifespan** – inicializuje ChromaDB a Ollama při startu (ne per-request)
+- `GET /` – health check s informacemi o konfiguraci
+- `POST /chat` – RAG pipeline: retrieve → generate → response
 
 ---
 
-## Budoucí rozvoj – Integrace AI
+## Řešení problémů
 
-Kód je strukturálně připraven pro rozšíření. Plánovaná integrace v `async def chat()`:
-
-```python
-from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI  # nebo Ollama/Gemini
-
-async def chat(request: ChatRequest):
-    # 1. Najít relevantní dokumenty ve vektorové databázi
-    docs = vector_store.similarity_search(request.message, k=3)
-    context = "\n".join([d.page_content for d in docs])
-
-    # 2. Sestavit prompt s kontextem a odeslat LLM
-    llm = ChatOpenAI(model="gpt-4o-mini")
-    answer = await llm.ainvoke(f"Kontext: {context}\nDotaz: {request.message}")
-
-    return ChatResponse(response=answer.content)
-```
-
-**Plánované integrační kroky:**
-- Napojení na ChromaDB z `data-vectorizer` pro sémantické vyhledávání
-- Integrace LangChain pro orchestraci LLM volání
-- Podpora LLM modelů: OpenAI GPT, Ollama (lokální), Google Gemini
+| Problém | Příčina | Řešení |
+|---|---|---|
+| `503 Service Unavailable` | Ollama neběží | Spusťte `ollama serve` |
+| `model "llama3.2" not found` | Model není stažen | Spusťte `ollama pull llama3.2` |
+| Pomalý start API (~30s) | Načítání embedding modelu | Normální chování při prvním startu |
+| Prázdné/irelevantní odpovědi | Prázdná nebo neaktuální ChromaDB | Spusťte `python main.py` v `data-vectorizer/` |
+| `SyntaxError` při startu | Python verze < 3.10 | Použijte Python 3.11 nebo 3.12 |
