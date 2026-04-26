@@ -12,13 +12,15 @@ def search(query, top_k=3):
     results = vector_store.similarity_search_with_score(query, k=top_k)
     
     print(f"\nNalezeno {len(results)} výsledků:\n")
+    separator = "=" * 50
+    divider = "-" * 50
     for idx, (doc, score) in enumerate(results, 1):
-        print(f"{"="*50}")
+        print(separator)
         print(f"Výsledek {idx} | Skóre vzdálenosti: {score:.4f}")
         print(f"Typ obsahu: {doc.metadata.get('type')}")
         print(f"Zdrojová URL: {doc.metadata.get('url')}")
         print(f"ID modulu: {doc.metadata.get('source_id')}")
-        print(f"{"-"*50}")
+        print(divider)
         # Vypíšeme prvních 500 znaků textu, aby se terminál nezahltil
         snippet = doc.page_content[:500]
         if len(doc.page_content) > 500:
