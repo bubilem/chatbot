@@ -4,6 +4,9 @@
 !.env.example
 !**/.env.example
 
+# PHP konfigurace (obsahuje URL a lokální nastavení)
+chat-widget/server/config.php
+
 # Python
 __pycache__/
 *.py[cod]
