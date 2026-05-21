@@ -1,9 +1,10 @@
 <?php
 // server/api.php
+require_once __DIR__ . '/config.php';
+
 session_start();
 
-// Allow cross-origin requests for testing
-header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Origin: " . CORS_ORIGIN);
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json; charset=UTF-8");
@@ -55,10 +56,9 @@ if (isset($data['message'])) {
     }
 
     // Forward the message to Python Bot API
-    $botApiUrl = 'http://127.0.0.1:8000/chat';
     $postData = json_encode(['message' => $userMessage]);
 
-    $ch = curl_init($botApiUrl);
+    $ch = curl_init(BOT_API_URL);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
@@ -66,9 +66,7 @@ if (isset($data['message'])) {
         'Content-Type: application/json',
         'Content-Length: ' . strlen($postData)
     ]);
-    
-    // Ochrana proti zaseknutí PHP, pokud Python API neběží
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5); 
+    curl_setopt($ch, CURLOPT_TIMEOUT, BOT_API_TIMEOUT);
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

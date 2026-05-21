@@ -47,7 +47,7 @@ def get_vector_store() -> Chroma:
         persist_directory=db_dir,
     )
 
-    count = _vector_store._collection.count()
+    count = len(_vector_store.get(include=[])["ids"])
     logger.info(f"ChromaDB připravena. Počet záznamů v kolekci: {count}")
 
     return _vector_store
