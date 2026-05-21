@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ── chat-api ──────────────────────────────────────────────────────────────
+  chat-api:
+    name: chat-api (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: chat-api/requirements.txt
+
+      - name: Install dependencies
+        working-directory: chat-api
+        run: pip install -r requirements.txt
+
+      - name: Install linter
+        run: pip install ruff
+
+      - name: Lint (ruff)
+        working-directory: chat-api
+        run: ruff check .
+
+  # ── data-vectorizer ───────────────────────────────────────────────────────
+  data-vectorizer:
+    name: data-vectorizer (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: data-vectorizer/requirements.txt
+
+      - name: Install dependencies
+        working-directory: data-vectorizer
+        run: pip install -r requirements.txt
+
+      - name: Install linter
+        run: pip install ruff
+
+      - name: Lint (ruff)
+        working-directory: data-vectorizer
+        run: ruff check .
