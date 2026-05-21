@@ -42,7 +42,8 @@ env.bak/
 venv.bak/
 
 # IDE a editory
-.vscode/
+.vscode/*
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
