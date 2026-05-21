@@ -36,7 +36,14 @@
         <p>Odpovědi jsou momentálně zajištěny jednoduchým PHP API, které pouze zopakuje vaši zprávu.</p>
     </div>
 
-    <!-- Include the chatbot widget script -->
+    <!--
+        Vložení widgetu – základní použití (stejná doména):
+        <script src="widget.js"></script>
+
+        Vložení na externím webu (jiná doména) – použijte absolutní URL přes data-api-url:
+        <script src="https://vase-domena.cz/chat-widget/client/widget.js"
+                data-api-url="https://vase-domena.cz/chat-widget/server/api.php"></script>
+    -->
     <script src="widget.js"></script>
 </body>
 </html>

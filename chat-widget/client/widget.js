@@ -1,18 +1,24 @@
 (function() {
-    // Inject CSS
+    // Najdeme <script> tag tohoto widgetu – slouží pro cestu ke CSS i pro data-api-url.
+    // document.currentScript funguje spolehlivě při synchronním načítání (standardní případ).
+    // Fallback přes getElementsByTagName pokryje starší browsery nebo async načítání.
+    const currentScript = document.currentScript || (function() {
+        const scripts = document.getElementsByTagName('script');
+        for (let i = 0; i < scripts.length; i++) {
+            if (scripts[i].src && scripts[i].src.includes('widget.js')) {
+                return scripts[i];
+            }
+        }
+        return null;
+    })();
+
+    // Inject CSS ze stejné složky jako widget.js
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.type = 'text/css';
-    // Assume widget.css is in the same directory as this script
-    // We can infer the script's path
-    const scripts = document.getElementsByTagName('script');
-    let scriptPath = '';
-    for (let i = 0; i < scripts.length; i++) {
-        if (scripts[i].src && scripts[i].src.includes('widget.js')) {
-            scriptPath = scripts[i].src.substring(0, scripts[i].src.lastIndexOf('/'));
-            break;
-        }
-    }
+    const scriptPath = currentScript
+        ? currentScript.src.substring(0, currentScript.src.lastIndexOf('/'))
+        : '';
     link.href = (scriptPath ? scriptPath + '/' : '') + 'widget.css';
     document.head.appendChild(link);
 
@@ -52,10 +58,11 @@
     const sendBtn = document.getElementById('chatbot-widget-send');
     const messagesEl = document.getElementById('chatbot-widget-messages');
 
-    // API URL - modify this to point to the correct absolute URL if needed
-    // Assuming relative path for now: ../server/api.php
-    // If the client is hosted on a different domain, provide full URL
-    const API_URL = '../server/api.php';
+    // API URL – při embedování na externím webu nastavte absolutní URL přes data atribut:
+    // <script src="widget.js" data-api-url="https://vase-domena.cz/chat-widget/server/api.php"></script>
+    // Bez atributu se použije relativní cesta (funguje pouze při hostování na stejné doméně).
+    const API_URL = (currentScript && currentScript.getAttribute('data-api-url'))
+        || '../server/api.php';
 
     // Event Listeners
     launcherEl.addEventListener('click', () => {
