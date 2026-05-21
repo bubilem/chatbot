@@ -12,6 +12,8 @@ import llm as llm_module
 
 load_dotenv()
 
+VERSION = "0.2.0"
+
 # Nastavení logování pro přehledný výstup v terminálu
 logging.basicConfig(
     level=logging.INFO,
@@ -68,7 +70,7 @@ app = FastAPI(
         "Přijímá uživatelské dotazy, vyhledá relevantní obsah v ChromaDB "
         "a vygeneruje odpověď pomocí lokálního Ollama LLM modelu."
     ),
-    version="0.2.0",
+    version=VERSION,
     lifespan=lifespan,
 )
 
@@ -91,9 +93,11 @@ class ChatRequest(BaseModel):
 
     @field_validator("message")
     @classmethod
-    def message_must_not_be_empty(cls, v: str) -> str:
+    def validate_message(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("Zpráva nesmí být prázdná.")
+        if len(v) > 500:
+            raise ValueError("Zpráva nesmí být delší než 500 znaků.")
         return v
 
 
@@ -114,7 +118,7 @@ async def health_check():
     return {
         "status": "ok",
         "service": "chatbot-api",
-        "version": "0.2.0",
+        "version": VERSION,
         "llm_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
         "retrieval_top_k": int(os.getenv("RETRIEVAL_TOP_K", 3)),
     }
