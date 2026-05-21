@@ -1,0 +1,18 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+# E/W = pycodestyle, F = pyflakes, I = isort, UP = pyupgrade
+select = ["E", "W", "F", "I", "UP"]
+ignore = [
+    "E501",  # line too long – řeší ruff formatter, ne linter
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["retriever", "llm", "extract", "transform", "load"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true   # externí balíčky bez stub souborů (chromadb, sentence-transformers)
+strict = false                  # zapněte postupně při přidávání type annotations
