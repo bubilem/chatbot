@@ -1,12 +1,12 @@
-import os
 import logging
+import os
 
 # Vypnutí ChromaDB telemetrie MUSÍ BÝT před importem ChromaDB
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
+from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-from dotenv import load_dotenv
 
 load_dotenv()
 

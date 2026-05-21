@@ -1,7 +1,8 @@
 import time
+
 from extract import extract_data
-from transform import transform_data
 from load import load_to_chroma
+from transform import transform_data
 
 def run_etl_pipeline():
     """Spustí kompletní proces: Extract -> Transform -> Load"""

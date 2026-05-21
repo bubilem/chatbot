@@ -1,14 +1,14 @@
-import os
 import logging
+import os
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
-from dotenv import load_dotenv
 
-import retriever
 import llm as llm_module
+import retriever
 
 load_dotenv()
 
