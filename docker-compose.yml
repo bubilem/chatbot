@@ -1,0 +1,48 @@
+services:
+
+  # ── Ollama – lokální LLM server ───────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  # ── Chat API – FastAPI RAG backend ────────────────────────────────────────
+  chat-api:
+    build: ./chat-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Sdílená ChromaDB – přístupná i pro data-vectorizer přes stejný named volume
+      - chroma_db:/app/chroma_db
+    env_file:
+      - ./chat-api/.env
+    environment:
+      # Přepíše hodnotu z .env – v Dockeru je Ollama dostupná pod service name, ne localhost
+      OLLAMA_BASE_URL: http://ollama:11434
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  # ── Data Vectorizer – jednorázový ETL skript ──────────────────────────────
+  # Nespouští se automaticky s `docker compose up`.
+  # Spuštění: docker compose run --rm data-vectorizer
+  data-vectorizer:
+    build: ./data-vectorizer
+    volumes:
+      - chroma_db:/app/chroma_db
+    env_file:
+      - ./data-vectorizer/.env
+    # Přístup k MySQL běžícímu na hostitelském stroji mimo Docker.
+    # Na Linuxu je host.docker.internal dostupné přes extra_hosts níže.
+    # Na Windows/Mac Docker Desktop jej přidává automaticky.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    profiles:
+      - etl
+
+volumes:
+  ollama_data:   # persistentní úložiště stažených Ollama modelů
+  chroma_db:     # sdílená vektorová databáze mezi chat-api a data-vectorizer
