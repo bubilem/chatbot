@@ -15,20 +15,15 @@ def get_chroma_db():
     Inicializuje lokální Chroma databázi a model pro tvorbu vektorů (embeddings).
     """
     db_dir = os.getenv("CHROMA_DB_DIR", "./chroma_db")
-    
-    # Použijeme lokální open-source model doporučený pro češtinu
-    model_name = "intfloat/multilingual-e5-small"
-    
+    collection_name = os.getenv("CHROMA_COLLECTION", "chatbot_data")
+    model_name = os.getenv("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
+
     # HuggingFaceEmbeddings automaticky stáhne model ze Sentence Transformers
-    embeddings = HuggingFaceEmbeddings(
-        model_name=model_name,
-        # model_kwargs={'device': 'cpu'}, # Nebo 'cuda' pokud je k dispozici GPU
-        # encode_kwargs={'normalize_embeddings': True}
-    )
-    
+    embeddings = HuggingFaceEmbeddings(model_name=model_name)
+
     # Připojíme / Vytvoříme instanci ChromaDB v dané složce
     vector_store = Chroma(
-        collection_name="chatbot_data",
+        collection_name=collection_name,
         embedding_function=embeddings,
         persist_directory=db_dir
     )
