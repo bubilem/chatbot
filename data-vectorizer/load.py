@@ -3,7 +3,6 @@ import os
 # Vypnutí ChromaDB telemetrie MUSÍ BÝT PŘED IMPORTEM samotné databáze
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
-import chromadb
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings

@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+
 def clean_html(raw_html):
     """Odstraní HTML značky z textu a vrátí čistý text."""
     if not raw_html:

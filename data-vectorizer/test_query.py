@@ -1,16 +1,17 @@
 from load import get_chroma_db
 
+
 def search(query, top_k=3):
     print(f"\n[AI] Hledám v databázi nejrelevantnější obsah pro: '{query}'")
-    
+
     # Načte existující databázi
     vector_store = get_chroma_db()
-    
+
     # Provede sémantické vyhledávání
     # similarity_search_with_score vrací dokument a jeho "vzdálenost" od dotazu
     # (u výchozí ChromaDB metriky L2 znamená menší číslo = vyšší podobnost)
     results = vector_store.similarity_search_with_score(query, k=top_k)
-    
+
     print(f"\nNalezeno {len(results)} výsledků:\n")
     separator = "=" * 50
     divider = "-" * 50
@@ -35,5 +36,5 @@ if __name__ == "__main__":
             continue
         if user_query.strip().lower() in ['q', 'quit', 'exit', 'konec']:
             break
-        
+
         search(user_query)
