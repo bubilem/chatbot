@@ -18,26 +18,26 @@ def transform_data(extracted_docs):
     [{'id': '...', 'text': '...', 'metadata': {...}}]
     """
     print("Čištění textu a chunking (rozdělování na bloky)...")
-    
+
     # LangChain Splitter - rozdělí text tak, aby nechal odstavce v celku (pokud možno)
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=800,       # Maximální počet znaků v jednom chunku
         chunk_overlap=100,    # Kolik znaků se má překrývat s předchozím chunkem pro kontext
         separators=["\n\n", "\n", ".", " ", ""]
     )
-    
+
     transformed_chunks = []
-    
+
     for doc in extracted_docs:
         raw_content = doc.get('content', '')
         clean_content = clean_html(raw_content)
-        
+
         if not clean_content:
             continue
-            
+
         # Rozsekání čistého textu
         chunks = text_splitter.split_text(clean_content)
-        
+
         for idx, chunk_text in enumerate(chunks):
             chunk_id = f"{doc['id']}_chunk_{idx}"
             transformed_chunks.append({
@@ -49,7 +49,7 @@ def transform_data(extracted_docs):
                     'source_id': doc['id']
                 }
             })
-            
+
     print(f"Transformace dokončena. Z původních {len(extracted_docs)} záznamů vzniklo {len(transformed_chunks)} chunků.")
     return transformed_chunks
 

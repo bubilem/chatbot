@@ -24,17 +24,17 @@ def extract_data():
     print("Připojování k databázi...")
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
+
     extracted_docs = []
 
     try:
         # 1. Články (základní texty)
         print("Stahuji hlavní obsah článků...")
         cursor.execute("""
-            SELECT a.id, a.url, a.preface, a.content 
+            SELECT a.id, a.url, a.preface, a.content
             FROM cms_article a JOIN cms_role r ON a.role = r.id
-            WHERE a.publishDateFrom <= NOW() 
-              AND (a.publishDateTo IS NULL OR NOW() <= a.publishDateTo) 
+            WHERE a.publishDateFrom <= NOW()
+              AND (a.publishDateTo IS NULL OR NOW() <= a.publishDateTo)
               AND a.publicate = 1 AND r.code = 'host';
         """)
         for row in cursor.fetchall():
@@ -52,11 +52,11 @@ def extract_data():
         cursor.execute("""
             SELECT a.id, m.id as module_id, a.url, d.value
             FROM cms_article a
-            JOIN cms_role r ON a.role = r.id  AND r.code = 'host'
+            JOIN cms_role r ON a.role = r.id AND r.code = 'host'
             JOIN cms_article_module m ON a.id = m.article AND m.modul = 'core/WysiwygModule'
             JOIN cms_article_module_data d ON m.id = d.module AND d.name = 'content'
-            WHERE a.publishDateFrom <= NOW() 
-              AND (a.publishDateTo IS NULL OR NOW() <= a.publishDateTo) 
+            WHERE a.publishDateFrom <= NOW()
+              AND (a.publishDateTo IS NULL OR NOW() <= a.publishDateTo)
               AND a.publicate = 1;
         """)
         for row in cursor.fetchall():
@@ -72,11 +72,11 @@ def extract_data():
         cursor.execute("""
             SELECT p.id, b.id as box_id, p.url, d.value
             FROM cms_page p
-            JOIN cms_role r ON p.role = r.id  AND r.code = 'host'
+            JOIN cms_role r ON p.role = r.id AND r.code = 'host'
             JOIN cms_box b ON p.id = b.page AND b.modul = 'core/WysiwygModule'
             JOIN cms_box_data d ON b.id = d.box AND d.name = 'content'
-            WHERE p.publishDateFrom <= NOW() 
-              AND (p.publishDateTo IS NULL OR NOW() <= p.publishDateTo) 
+            WHERE p.publishDateFrom <= NOW()
+              AND (p.publishDateTo IS NULL OR NOW() <= p.publishDateTo)
               AND p.active = 1;
         """)
         for row in cursor.fetchall():
